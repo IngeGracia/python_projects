@@ -1,3 +1,7 @@
 agent/core/.env
 agent/assets/app_credentials.json
 agent/assets/token.json
+
+agent_weather/core/.env
+agent_weather/assets/app_credentials.json
+agent_weather/assets/token.json
