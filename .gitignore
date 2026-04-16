@@ -1,0 +1,3 @@
+agent/core/.env
+agent/assets/app_credentials.json
+agent/assets/token.json
