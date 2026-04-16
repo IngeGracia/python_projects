@@ -1,93 +1,69 @@
 import os
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
+import requests
 
 class Tools:
     def __init__(self):
-        self.SCOPES = ["https://www.googleapis.com/auth/calendar"]
-        self.CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "app_credentials.json")
-        self.TOKEN_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "token.json")
-
-    def get_calendar_service(self):
-        creds = None
-
-        #Revisar si existe el token y cargarlo
-        if os.path.exists(self.TOKEN_FILE):
-            creds = Credentials.from_authorized_user_file(self.TOKEN_FILE, self.SCOPES)
-
-        #No hay credenciales validas, hacer proceso de autorizacion o refrescar
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if not os.path.exists(self.CREDENTIALS_FILE):
-                    raise FileNotFoundError(f"No se encontró el archivo de credenciales!")
-                flow = InstalledAppFlow.from_client_secrets_file(self.CREDENTIALS_FILE, self.SCOPES)
-                creds = flow.run_local_server(port=0)
-
-            #Guardar el token generado
-            with open(self.TOKEN_FILE, "w", encoding="utf-8") as f:
-                f.write(creds.to_json())
-
-        #Regresar el servicio ya hecho
-        return build("calendar", "v3", credentials=creds)
-
-    def check_availability(self, time_ini:str, time_end:str):
-        # print(f"Llamando herramienta check_availability con ({time_ini}, {time_end})")
-        body = {
-            "timeMin": time_ini,
-            "timeMax": time_end,
-            "items": [
-                {"id": "f56a303b702603a7338aed7bd58c456f6051eaab8d1e8bca7ebd0b38aba6791e@group.calendar.google.com"}
-            ]
-        }
-        service = self.get_calendar_service()
-        result = service.freebusy().query(body=body).execute()
-
-        busy = result.get("calendars", {}).get("f56a303b702603a7338aed7bd58c456f6051eaab8d1e8bca7ebd0b38aba6791e@group.calendar.google.com", {}).get("busy", [])
-        return {
-            "id_calendar": "f56a303b702603a7338aed7bd58c456f6051eaab8d1e8bca7ebd0b38aba6791e@group.calendar.google.com",
-            "time_ini": time_ini,
-            "time_end": time_end,
-            "busy": busy,
-            "is_free": (len(busy)==0)
-        }
-        
-    def create_event(self, summary:str, start:str, end:str, description:str=""):
-        # print(f"Llamando herramienta create_event con ({summary}, {start}, {end}, {description})")
-        body = {
-            "summary": summary,
-            "description": description,
-            "start": {
-                "dateTime": start,
-                "timeZone": "America/Hermosillo"
-            },
-            "end": {
-                "dateTime": end,
-                "timeZone": "America/Hermosillo"
-            }
-        }
-        service = self.get_calendar_service()
-        result = service.events().insert(
-            calendarId="f56a303b702603a7338aed7bd58c456f6051eaab8d1e8bca7ebd0b38aba6791e@group.calendar.google.com", 
-            body=body
-        ).execute()
-
-        return {
-            "id_calendar": "f56a303b702603a7338aed7bd58c456f6051eaab8d1e8bca7ebd0b38aba6791e@group.calendar.google.com",
-            "id_event": result["id"],
-            "summary": summary,
-            "start": start,
-            "end": end,
-            "description": description
-        }
+        pass
 
 
-if __name__ == "__main__":
-    tools = Tools()
-    time_ini = "2026-04-14T15:00:00-07:00"
-    time_end = "2026-04-14T15:30:00-07:00"
-    print(tools.check_availability(time_ini, time_end))
+    def obtener_clima(self, ciudad):
+        print(f"Herramienta llamada: obtener_clima con ciudad: {ciudad}")
+
+        if ciudad.lower() == "obregón":
+            return f"La temperatura en {ciudad} es muy muy caliente!"
+        elif ciudad.lower() == "monterrey":
+            return f"La temperatura en {ciudad} es demasiado hermosa para ser verdad."
+        else:
+            # return f"No se encontró información del clima para la ciudad {ciudad}."
+            return f"La temperatura en {ciudad} es horripilante."
+
+
+    def obtener_clima_api(self, latitude:str, longitude:str):
+        print(f"Herramienta llamada: obtener_clima_api con latitude: {latitude} y longitude: {longitude}")
+
+        if not latitude or not longitude:
+            return f"ERROR: No se proporcionaron las coordenadas de latitud y longitud."
+
+        api_url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&timezone=America%2FLos_Angeles&current=temperature_2m"
+
+        try:
+            response = requests.get(api_url, timeout=30)
+            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            return response.json()
+        except Exception as e:
+            print(f"Error en obtener_clima con latitude: {latitude} y longitud: {longitude}: {e}")
+            return f"ERROR: no fue posible obtener el clima para {latitude}, {longitude}"
+
+
+    def obtener_lat_long(self, ciudad):
+        print(f"Herramienta llamada: obtener_lat_long con ciudad: {ciudad}")
+        if not ciudad:
+            return f"ERROR: No se proporcionó una ciudad."
+
+        api_url = f"https://geocoding-api.open-meteo.com/v1/search?name={ciudad.lower()}&count=1&language=es&format=json"
+
+        try:
+            response = requests.get(api_url, timeout=30)
+            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            return response.json()
+        except Exception as e:
+            print(f"Error en obtener_lat_long con ciudad: {ciudad}: {e}")
+            return f"ERROR: no fue posible obtener las coordenadas de la ciudad {ciudad}"
+
+
+    def currency_conversion(self, from_currency:str, to_currency:str, amount:float):
+        print(f"Herramienta llamada: currency_conversion con from_currency: {from_currency}, to_currency: {to_currency}, amount: {amount}")
+        if not from_currency or not to_currency or not amount:
+            return f"ERROR: No se proporcionaron los parámetros de la conversión de monedas."
+
+        api_url = f"https://v6.exchangerate-api.com/v6/8f9d1aa541a2422c8cc7013b/pair/{from_currency.upper()}/{to_currency.upper()}/{amount}"
+
+        try:
+            response = requests.get(api_url, timeout=30)
+            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            return response.json()
+        except Exception as e:
+            print(f"Error en currency_conversion con from_currency: {from_currency}, to_currency: {to_currency}, amount: {amount}: {e}")
+            return f"ERROR: no fue posible obtener la conversión de divisas para {from_currency}, {to_currency}, {amount}"
+
+

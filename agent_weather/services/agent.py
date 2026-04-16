@@ -14,58 +14,72 @@ TOOLS = [
             {
                 "type": "function",
                 "function": {
-                    "name": "check_availability",
+                    "name": "obtener_clima_api",
                     "description": (
-                        "Revisa si el calendario del usuario está disponible entre time_ini y time_end usando Google Calendar."
-                        "Los datos time_ini y time_end DEBEN estar en el formato RFC3339 (con offset para la zona horaria). Por ejemplo: "
-                        "2026-04-14T15:00:00-07:00"
+                        "Llama a esta función para obtener el clima actual de cualquier lugar. "
+                        "Se debe enviar como argumento la Latitud y Longitud de la ciudad de la que deseas obtener el clima."
                     ),
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "time_ini": {
+                            "latitude": {
                                 "type": "string",
-                                "description": "Fecha y hora de inicio en formato RFC3339 (con offset para la zona horaria)."
+                                "description": "La Latitud de la ciudad de la cual se desea obtener el clima."
                             },
-                            "time_end": {
+                            "longitude": {
                                 "type": "string",
-                                "description": "Fecha y hora de fin en formato RFC3339 (con offset para la zona horaria)."
+                                "description": "La Longitud de la ciudad de la cual se desea obtener el clima."
                             }
                         },
-                        "required": ["time_ini", "time_end"]
+                        "required": ["latitude", "longitude"]
                     }
                 }
             },
             {
                 "type": "function",
-                "function":{
-                    "name": "create_event",
+                "function": {
+                    "name": "obtener_lat_long",
                     "description": (
-                        "Crea un evento en el calendario del usuario usando Google Calendar."
-                        "Los datos start y end DEBEN estar en el formato RFC3339 (con offset para la zona horaria). Por ejemplo: "
-                        "2026-04-14T15:00:00-07:00"
+                        "Llama a esta función para obtener la Latitud y Longitud de cualquier ciudad. "
+                        "Se debe enviar como argumento el nombre de la ciudad de la que deseas obtener el clima."
                     ),
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "summary": {
+                            "ciudad": {
                                 "type": "string",
-                                "description": "Resumen del evento."
-                            },
-                            "start": {
-                                "type": "string",
-                                "description": "Fecha y hora de inicio en formato RFC3339 (con offset para la zona horaria)."
-                            },
-                            "end": {
-                                "type": "string",
-                                "description": "Fecha y hora de fin en formato RFC3339 (con offset para la zona horaria)."
-                            },
-                            "description": {
-                                "type": "string",
-                                "description": "Descripción del evento (Este es opcional)"
+                                "description": "El nombre de la ciudad de la cual se desea obtener el clima."
                             }
                         },
-                        "required": ["summary", "start", "end"]
+                        "required": ["ciudad"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "currency_conversion",
+                    "description": (
+                        "Llama a esta función para obtener la conversión de monedas de cualquier moneda a cualquier otra moneda. "
+                        "Se debe enviar como argumento la moneda de origen (from_currency), la moneda de destino (to_currency) y la cantidad a convertir (amount)."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "from_currency": {
+                                "type": "string",
+                                "description": "La moneda de origen de la cual se desea obtener la conversión."
+                            },
+                            "to_currency": {
+                                "type": "string",
+                                "description": "La moneda de destino de la cual se desea obtener la conversión."
+                            },
+                            "amount": {
+                                "type": "number",
+                                "description": "La cantidad de la moneda de origen que se desea convertir."
+                            }
+                        },
+                        "required": ["from_currency", "to_currency", "amount"]
                     }
                 }
             }
@@ -73,12 +87,16 @@ TOOLS = [
 SYSTEM_PROMPT = f"""
     Eres un asistente que habla español y recibe de una manera breve y concisa en español latino (México).
 
-    Reglas:
-        - Antes de crear una reunión, siempre debes pedir confirmación explícita del usuario.
-        - Si el usuario no confirma, no puedes llamar a la herramienta create_event.
-        - Cada vez que crees un evento en el calendario (Únicamente cuando ya hayas creado el evento), debes indicarle al usuario los datos con los que creaste el evento.
+    Herramientas:
+        - Cuentas con una herramienta llamada obtener_clima_api la cual te proporciona el clima en cualquier ciudad.
+            Requiere indicarle una Latitud y Longitud.
+        - Cuentas con un aherramienta llamada obtener_lat_long la cual te proporciona la Latitud y Longitud de cualquier ciudad.
+            Requiere indicarle una Ciudad.
 
-    Fecha y hora actual: {datetime.now(ZoneInfo("America/Hermosillo")).strftime('%Y-%m%d %H:%M:%S')} (UTC -07:00, hora local)
+        - Cuentas con una herramienta llamada currency_conversion la cual te hace una conversión de monedas.
+            Requiere indicarle una moneda de origen (from_currency), una moneda de destino (to_currency) y la cantidad a convertir (amount).
+            Si el usuario no indica alguna de las monedas, debes asegurarte de solicitarlas.
+            Si las monedas son iguales, no debes hacer la conversión e indicarle al usuario el motivo.
 """
 
 
@@ -144,17 +162,20 @@ class Agent:
                 name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments or "{}") # Convertir el json a un diccionario
 
-                if name == "check_availability":
-                    result = self.tools.check_availability(
-                        time_ini=args["time_ini"],
-                        time_end=args["time_end"]
+                if name == "obtener_clima_api":
+                    result = self.tools.obtener_clima_api(
+                        latitude=args["latitude"],
+                        longitude=args["longitude"]
                     )
-                elif name == "create_event":
-                    result = self.tools.create_event(
-                        summary=args["summary"],
-                        start=args["start"],
-                        end=args["end"],
-                        description=args.get("description", "")
+                elif name == "obtener_lat_long":
+                    result = self.tools.obtener_lat_long(
+                        ciudad=args["ciudad"]
+                    )
+                elif name == "currency_conversion":
+                    result = self.tools.currency_conversion(
+                        from_currency=args["from_currency"],
+                        to_currency=args["to_currency"],
+                        amount=args["amount"]
                     )
                 else:
                     print(f"Se intentó llamar a una herramienta desconocida: {name}")
