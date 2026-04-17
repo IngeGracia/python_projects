@@ -4,108 +4,87 @@ from zoneinfo import ZoneInfo
 from groq import Groq
 from dotenv import load_dotenv
 from core.simple_memory import SimpleMemory
+from core.long_term_memory import LongTermMemory
 from services.tools import Tools
 
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env")
-load_dotenv(env_path)
-MEMORY_MAX_MESSAGES = 10
-TOOLS = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "obtener_clima_api",
-                    "description": (
-                        "Llama a esta función para obtener el clima actual de cualquier lugar. "
-                        "Se debe enviar como argumento la Latitud y Longitud de la ciudad de la que deseas obtener el clima."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "latitude": {
-                                "type": "string",
-                                "description": "La Latitud de la ciudad de la cual se desea obtener el clima."
-                            },
-                            "longitude": {
-                                "type": "string",
-                                "description": "La Longitud de la ciudad de la cual se desea obtener el clima."
-                            }
-                        },
-                        "required": ["latitude", "longitude"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "obtener_lat_long",
-                    "description": (
-                        "Llama a esta función para obtener la Latitud y Longitud de cualquier ciudad. "
-                        "Se debe enviar como argumento el nombre de la ciudad de la que deseas obtener el clima."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "ciudad": {
-                                "type": "string",
-                                "description": "El nombre de la ciudad de la cual se desea obtener el clima."
-                            }
-                        },
-                        "required": ["ciudad"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "currency_conversion",
-                    "description": (
-                        "Llama a esta función para obtener la conversión de monedas de cualquier moneda a cualquier otra moneda. "
-                        "Se debe enviar como argumento la moneda de origen (from_currency), la moneda de destino (to_currency) y la cantidad a convertir (amount)."
-                    ),
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "from_currency": {
-                                "type": "string",
-                                "description": "La moneda de origen de la cual se desea obtener la conversión."
-                            },
-                            "to_currency": {
-                                "type": "string",
-                                "description": "La moneda de destino de la cual se desea obtener la conversión."
-                            },
-                            "amount": {
-                                "type": "number",
-                                "description": "La cantidad de la moneda de origen que se desea convertir."
-                            }
-                        },
-                        "required": ["from_currency", "to_currency", "amount"]
-                    }
-                }
-            }
-        ]
-SYSTEM_PROMPT = f"""
-    Eres un asistente que habla español y recibe de una manera breve y concisa en español latino (México).
-
-    Herramientas:
-        - Cuentas con una herramienta llamada obtener_clima_api la cual te proporciona el clima en cualquier ciudad.
-            Requiere indicarle una Latitud y Longitud.
-        - Cuentas con un aherramienta llamada obtener_lat_long la cual te proporciona la Latitud y Longitud de cualquier ciudad.
-            Requiere indicarle una Ciudad.
-
-        - Cuentas con una herramienta llamada currency_conversion la cual te hace una conversión de monedas.
-            Requiere indicarle una moneda de origen (from_currency), una moneda de destino (to_currency) y la cantidad a convertir (amount).
-            Si el usuario no indica alguna de las monedas, debes asegurarte de solicitarlas.
-            Si las monedas son iguales, no debes hacer la conversión e indicarle al usuario el motivo.
-"""
+# env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env")
+# load_dotenv(env_path)
 
 
 class Agent:
     def __init__(self):
+        self.__env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env")
+        load_dotenv(self.__env_path)
+        MEMORY_MAX_MESSAGES = 10
+        self.tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "guardar_memoria_largo_plazo",
+                    "description": (
+                        "Utiliza esta herramienta cuando el usuario haya dicho algo importante que consideres que se deba almacenar como memoria de largo plazo."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "memory": {
+                                "type": "string",
+                                "description": "La memoria que se desea almacenar."
+                            }
+                        },
+                        "required": ["memory"]
+                    }
+                }
+            }
+        ]
+        
         self.api_key = os.environ.get("GROQ_API_KEY")
         self.client = Groq(api_key=self.api_key)
         self.memory = SimpleMemory(max_messages=MEMORY_MAX_MESSAGES)
-        self.tools = Tools()        
+        # self.tools = Tools()
+        self.ltm = LongTermMemory()
+        self.initialize_promp()
+
+    def initialize_promp(self):
+        database_url = os.environ.get("DATABASE_URL")
+        memories = self.ltm.get_long_term_memories("bunbury")
+        memories_text = self.ltm.format_memories(memories)
+
+        self.system_prompt = f"""
+            # ROL
+            Eres un asistente de IA amigable que habla español y de manera concisa.
+            
+            # REGLAS
+            - Por cada mensaje que envía el usuario, debes evaluar si tiene información importante o personal (preferencias, hábitos, objetivos, eventos importantes, gustos, pasatiempos, cosas favoritas, fechas. 
+                De ser así, utiliza la herramienta llamada **Guardar memoria de largo plazo** para guardar dicha información en memoria de largo plazo.
+            - Debes responder al usuario de manera natural y amigable. 
+                Aunque guardes información, tu respuesta no debe indicar dicha acción.
+            - Utiliza memorias almacenadas para dar respuestas personalizadas y con contexto relevante.
+            - Considera la fecha y hora de las memorias obtenidas. 
+                Tus respuestas deben ser actualizadas.
+            - Redacta tus respuestas según preferencias del usuario e interacciones anteriores.
+            - Nunca almacenes información sensible como nombres de usuario, contraseñas, tarjetas de crédito o información de pagos.
+
+
+            # HERRAMIENTAS
+            ## guardar_memoria_largo_plazo
+            - Utiliza esta herramienta para almacenar información importante del usuario que debas mantener para futuras interacciones en memoria de largo plazo.
+
+
+            # MEMORIAS
+            ## Memorias importantes recientes
+            - A continuación aparece una lista de las memorias almacenadas (puede estar vacía si no has interactuado con el usuario).
+                == INICIO DE MEMORIAS
+                {memories_text}
+                == FIN DE MEMORIAS
+
+            ## Guía para uso de memorias:
+            - Prioriza los mensajes recientes.
+            - Referencía las memorias entre ellas para mantener consistencia en tus respuestas.
+                Por ejemplo, si el usuario comparte preferencias que hacen conflico con el tiempo clarifica o adáptate.
+        """
+
 
     def run(self):
         print("Agent running.")
@@ -133,7 +112,7 @@ class Agent:
     def process_response(self, client:Groq, memory_messages:list[dict], user_text:str):
         # Obtener la memoria
         #messages = self.memory.get_messages()
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages = [{"role": "system", "content": self.system_prompt}]
         messages.extend(memory_messages)
         messages.append(
             {"role": "user", "content": user_text}
@@ -143,7 +122,7 @@ class Agent:
             resp = self.client.chat.completions.create(
                 model="qwen/qwen3-32b",
                 messages=messages,
-                tools=TOOLS
+                tools=self.tools
             )
 
             msg = resp.choices[0].message
@@ -162,21 +141,12 @@ class Agent:
                 name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments or "{}") # Convertir el json a un diccionario
 
-                if name == "obtener_clima_api":
-                    result = self.tools.obtener_clima_api(
-                        latitude=args["latitude"],
-                        longitude=args["longitude"]
+                if name == "guardar_memoria_largo_plazo":
+                    self.ltm.insert_long_term_memory(
+                        id_user="bunbury",
+                        memory=args.get("memory", "")
                     )
-                elif name == "obtener_lat_long":
-                    result = self.tools.obtener_lat_long(
-                        ciudad=args["ciudad"]
-                    )
-                elif name == "currency_conversion":
-                    result = self.tools.currency_conversion(
-                        from_currency=args["from_currency"],
-                        to_currency=args["to_currency"],
-                        amount=args["amount"]
-                    )
+                    result = "Memoria almacenada correctamente."
                 else:
                     print(f"Se intentó llamar a una herramienta desconocida: {name}")
                     result = {"error": f"Herramienta desconocida: {name}"}
