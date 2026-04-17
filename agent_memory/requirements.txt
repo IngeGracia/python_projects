@@ -11,3 +11,6 @@ requests
 
 # Postgres
 psycopg[binary]
+
+# PDF
+pypdf
