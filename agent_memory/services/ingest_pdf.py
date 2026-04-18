@@ -1,5 +1,7 @@
 import os, sys
 from pypdf import PdfReader
+from core.gemini_embedder import GeminiEmbedder
+from dotenv import load_dotenv
 
 
 def main():
@@ -9,11 +11,18 @@ def main():
         return
 
     pages = extract_pdf_text(pdf_path)
-    # print(pages)
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env"))
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    embedder = GeminiEmbedder(api_key=GEMINI_API_KEY)
 
     for page in pages:
         chunks = chunk_text(page["text"])
         print(chunks)
+        
+        # Generar embeddings por cada sección (Chunk)
+        for chunk in chunks:
+            vectors = embedder.embed_document(chunk)
+            print(vectors)
 
     
 def extract_pdf_text(path:str):

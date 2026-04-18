@@ -14,3 +14,6 @@ psycopg[binary]
 
 # PDF
 pypdf
+
+# Google AI
+google-genai
