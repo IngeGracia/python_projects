@@ -36,6 +36,6 @@ def chunk_text(text:str, size:int = 500, overlap:int = 100):
         start = end - overlap
     return chunks
 
-
+ 
 if __name__ == "__main__":
     main()
