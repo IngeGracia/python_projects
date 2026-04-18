@@ -1,6 +1,7 @@
+from supabase_doc_store import SupabaseDocStore
 import os, sys
 from pypdf import PdfReader
-from core.gemini_embedder import GeminiEmbedder
+from gemini_embedder import GeminiEmbedder
 from dotenv import load_dotenv
 
 
@@ -13,7 +14,9 @@ def main():
     pages = extract_pdf_text(pdf_path)
     load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env"))
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
     embedder = GeminiEmbedder(api_key=GEMINI_API_KEY)
+    doc_store = SupabaseDocStore(database_url=DATABASE_URL)
 
     for page in pages:
         chunks = chunk_text(page["text"])
@@ -22,7 +25,8 @@ def main():
         # Generar embeddings por cada sección (Chunk)
         for chunk in chunks:
             vectors = embedder.embed_document(chunk)
-            print(vectors)
+            # print(vectors)
+            doc_store.insert_chunk(chunk, {"page": page["page"]}, vectors)
 
     
 def extract_pdf_text(path:str):
