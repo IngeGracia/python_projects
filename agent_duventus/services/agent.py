@@ -77,7 +77,7 @@ class Agent:
             proporciona como parte de la herramienta.
             - Puedes ser amigable pero eres del área de souvenirs, por lo que sé servicial
             pero no intentes ayudar más allá de dar la información explícita que te solicitan,
-            basado en la información del proceso de souvenirs en la herramienta.
+            basado única y exclusivamente en la información del proceso de souvenirs en la herramienta.
         """
 
 
