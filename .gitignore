@@ -13,3 +13,7 @@ agent_memory/assets/token.json
 agent_start/core/.env
 agent_start/assets/app_credentials.json
 agent_start/assets/token.json
+
+agent_duventus/core/.env
+agent_duventus/assets/app_credentials.json
+agent_duventus/assets/token.json
