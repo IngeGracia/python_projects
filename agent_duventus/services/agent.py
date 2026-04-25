@@ -43,6 +43,23 @@ class Agent:
                         },
                         "required": ["query"]
                     }
+                },
+                "type": "function",
+                "function": {
+                    "name": "pedido_transferencia",
+                    "description": (
+                        "Obtiene información importante y actualizada acerca de los Pedidos de transferencia"
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "La pregunta del usuario."
+                            }
+                        },
+                        "required": ["query"]
+                    }
                 }
             }
         ]
@@ -61,20 +78,19 @@ class Agent:
 
         self.system_prompt = f"""
             # ROL
-            Eres un agente de servicio al cliente experto en el proceso de souvenirs.
+            Eres un agente de servicio al cliente experto en los Pedidos de Transferencia, del Proceso de Ventas.
 
-            Los usuarios te contactarán con dudas relacionadas a los souvenirs.
-            Para cualquier consulta relacionada al proceso de souvenirs,
-            debes consultar la información actualizada utilizando
-            la herramienta "proceso_souvenirs"
+            Los usuarios te contactarán con dudas relacionadas al pedido de Transferencias.
+            Para cualquier consulta relacionada sobre ello, debes consultar la información actualizada utilizando la herramienta "pedido_transferencia"
 
             # HERRAMIENTAS
-            ## proceso_souvenirs
-            Esta herramienta debes llamarla siempre que el usuario desee saber algo
-            relacionado al proceso de souvenirs. Si no está claro según la pregunta,
-            entonces también utiliza la herramienta.
+            ## pedido_transferencia
+            Esta herramienta debes llamarla siempre que el usuario desee saber algo relacionado al pedido de transferencia. 
+            Si no está claro según la pregunta, entonces también utiliza la herramienta.
 
-            
+            # REGLAS
+            - Única y exclusivamente debes responder cuestiones que tengan que ver con el Pedido de Transferencia, por lo que si te solicitan información distinta, 
+            no debes responder ni tratar de adivinar soluciones.
         """
 # # REGLAS
 #             - No debes inventar información de ningún tipo. Solo utiliza lo que se te
@@ -140,7 +156,7 @@ class Agent:
                 # Convertir el json a un diccionario
                 args = json.loads(tool_call.function.arguments or "{}")
 
-                if name == "proceso_souvenirs":
+                if name == "pedido_transferencia":
                     query = args["query"]
                     # print(f"Llamando función proceso_souvenirs con {query}")
                     print(f"...")
