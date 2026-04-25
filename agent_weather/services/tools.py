@@ -1,13 +1,13 @@
 import os
 import requests
 
+
 class Tools:
     def __init__(self):
         pass
 
-
     def obtener_clima(self, ciudad):
-        print(f"Herramienta llamada: obtener_clima con ciudad: {ciudad}")
+        print(f"⚙️ 🧠  Obteniendo coordenadas de: {ciudad}")
 
         if ciudad.lower() == "obregón":
             return f"La temperatura en {ciudad} es muy muy caliente!"
@@ -17,9 +17,9 @@ class Tools:
             # return f"No se encontró información del clima para la ciudad {ciudad}."
             return f"La temperatura en {ciudad} es horripilante."
 
-
-    def obtener_clima_api(self, latitude:str, longitude:str):
-        print(f"Herramienta llamada: obtener_clima_api con latitude: {latitude} y longitude: {longitude}")
+    def obtener_clima_api(self, latitude: str, longitude: str):
+        print(
+            f"⚙️ 🧠  Obteniendo clima en coordenadas ({latitude}, {longitude})")
 
         if not latitude or not longitude:
             return f"ERROR: No se proporcionaron las coordenadas de latitud y longitud."
@@ -28,15 +28,16 @@ class Tools:
 
         try:
             response = requests.get(api_url, timeout=30)
-            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            # Para que marque un error si el servicio devuelve un Http de error.
+            response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error en obtener_clima con latitude: {latitude} y longitud: {longitude}: {e}")
+            print(
+                f"Error en obtener_clima con latitude: {latitude} y longitud: {longitude}: {e}")
             return f"ERROR: no fue posible obtener el clima para {latitude}, {longitude}"
 
-
     def obtener_lat_long(self, ciudad):
-        print(f"Herramienta llamada: obtener_lat_long con ciudad: {ciudad}")
+        print(f"⚙️ 🧠  Obteniendo coordenadas de: {ciudad}")
         if not ciudad:
             return f"ERROR: No se proporcionó una ciudad."
 
@@ -44,15 +45,16 @@ class Tools:
 
         try:
             response = requests.get(api_url, timeout=30)
-            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            # Para que marque un error si el servicio devuelve un Http de error.
+            response.raise_for_status()
             return response.json()
         except Exception as e:
             print(f"Error en obtener_lat_long con ciudad: {ciudad}: {e}")
             return f"ERROR: no fue posible obtener las coordenadas de la ciudad {ciudad}"
 
-
-    def currency_conversion(self, from_currency:str, to_currency:str, amount:float):
-        print(f"Herramienta llamada: currency_conversion con from_currency: {from_currency}, to_currency: {to_currency}, amount: {amount}")
+    def currency_conversion(self, from_currency: str, to_currency: str, amount: float):
+        print(
+            f"⚙️🧠  Obteniendo conversión de monedas: de {amount} {from_currency} a {to_currency}")
         if not from_currency or not to_currency or not amount:
             return f"ERROR: No se proporcionaron los parámetros de la conversión de monedas."
 
@@ -60,10 +62,10 @@ class Tools:
 
         try:
             response = requests.get(api_url, timeout=30)
-            response.raise_for_status() # Para que marque un error si el servicio devuelve un Http de error.
+            # Para que marque un error si el servicio devuelve un Http de error.
+            response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error en currency_conversion con from_currency: {from_currency}, to_currency: {to_currency}, amount: {amount}: {e}")
+            print(
+                f"Error en currency_conversion con from_currency: {from_currency}, to_currency: {to_currency}, amount: {amount}: {e}")
             return f"ERROR: no fue posible obtener la conversión de divisas para {from_currency}, {to_currency}, {amount}"
-
-

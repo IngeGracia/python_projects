@@ -1,4 +1,5 @@
-import os, json
+import os
+import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from groq import Groq
@@ -16,7 +17,8 @@ from services.supabase_doc_store import SupabaseDocStore
 
 class Agent:
     def __init__(self):
-        self.__env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", ".env")
+        self.__env_path = os.path.join(os.path.dirname(
+            os.path.dirname(__file__)), "core", ".env")
         load_dotenv(self.__env_path)
         self.gemini_api = os.environ.get("GEMINI_API_KEY")
         self.database_url = os.environ.get("DATABASE_URL")
@@ -44,7 +46,7 @@ class Agent:
                 }
             }
         ]
-        
+
         self.api_key = os.environ.get("GROQ_API_KEY")
         self.client = Groq(api_key=self.api_key)
         self.memory = SimpleMemory(max_messages=MEMORY_MAX_MESSAGES)
@@ -72,14 +74,14 @@ class Agent:
             relacionado al proceso de souvenirs. Si no está claro según la pregunta,
             entonces también utiliza la herramienta.
 
-            # REGLAS
-            - No debes inventar información de ningún tipo. Solo utiliza lo que se te
-            proporciona como parte de la herramienta.
-            - Puedes ser amigable pero eres del área de souvenirs, por lo que sé servicial
-            pero no intentes ayudar más allá de dar la información explícita que te solicitan,
-            basado única y exclusivamente en la información del proceso de souvenirs en la herramienta.
+            
         """
-
+# # REGLAS
+#             - No debes inventar información de ningún tipo. Solo utiliza lo que se te
+#             proporciona como parte de la herramienta.
+#             - Puedes ser amigable pero eres del área de souvenirs, por lo que sé servicial
+#             pero no intentes ayudar más allá de dar la información explícita que te solicitan,
+#             basado única y exclusivamente en la información del proceso de souvenirs en la herramienta.
 
     def run(self):
         print("Agent running.")
@@ -93,7 +95,8 @@ class Agent:
                 print("Agent stopped.")
                 break
 
-            assistant_text = self.process_response(self.client, self.memory.get_messages(), user_text)
+            assistant_text = self.process_response(
+                self.client, self.memory.get_messages(), user_text)
             # tokens_total_usage = resp.usage.total_tokens
             # tokens_input_usage = resp.usage.prompt_tokens
             # tokens_output_usage = resp.usage.completion_tokens
@@ -104,9 +107,9 @@ class Agent:
             self.memory.add_message("user", user_text)
             self.memory.add_message("assistant", assistant_text)
 
-    def process_response(self, client:Groq, memory_messages:list[dict], user_text:str):
+    def process_response(self, client: Groq, memory_messages: list[dict], user_text: str):
         # Obtener la memoria
-        #messages = self.memory.get_messages()
+        # messages = self.memory.get_messages()
         messages = [{"role": "system", "content": self.system_prompt}]
         messages.extend(memory_messages)
         messages.append(
@@ -134,11 +137,13 @@ class Agent:
 
             for tool_call in msg.tool_calls:
                 name = tool_call.function.name
-                args = json.loads(tool_call.function.arguments or "{}") # Convertir el json a un diccionario
+                # Convertir el json a un diccionario
+                args = json.loads(tool_call.function.arguments or "{}")
 
                 if name == "proceso_souvenirs":
                     query = args["query"]
-                    print(f"Llamando función proceso_souvenirs con {query}")
+                    # print(f"Llamando función proceso_souvenirs con {query}")
+                    print(f"...")
                     emb = self.embedder.embed_query(query)
                     hits = self.store.search_chunks(query_emb=emb)
                     result = {
@@ -146,9 +151,10 @@ class Agent:
                         "matches": hits
                     }
                 else:
-                    print(f"Se intentó llamar a una herramienta desconocida: {name}")
+                    print(
+                        f"Se intentó llamar a una herramienta desconocida: {name}")
                     result = {"error": f"Herramienta desconocida: {name}"}
-                
+
                 # Agregar a los mensajes el resultado del llamado de la herramienta.
                 # Esto lo recibirá el modelo al continuar la iteración
                 messages.append({
